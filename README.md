@@ -23,7 +23,7 @@ We would like you to model the following.
 2. You can only issue three commands: Move forward, rotate clockwise, and rotate
 anticlockwise.
 3. If the rover moves off the grid, it reappears on the opposite side of the grid.
-4. 
+
 ### Part 2: Autopilot
 1. Devise a simple process for determining the shortest possible path from one position
 on the grid to another.
