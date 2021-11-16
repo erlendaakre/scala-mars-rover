@@ -6,8 +6,8 @@ object RoverControl {
 
 
   def main(args: Array[String]): Unit = {
-    val height = 10
-    val width = 30
+    val height = 5
+    val width = 40
     val roughness = 0.05
     val roverStart = Coordinate(height/2, width/2)
 
@@ -20,28 +20,30 @@ object RoverControl {
   }
 }
 
-case class World(width: Int, height: Int, map: Seq[Seq[Cell]]) { self =>
+case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
 
   def insertRover(rover: Rover): World = {
-    self.copy(map = map.map { row =>
-      if(row.head.location.x == rover.location.x) {
-        row.map { cell =>
-          if(cell.location.y == rover.location.y) cell.copy(rover = Some(rover)) else cell
-        }
-      }
-      else row
-    })
+    val spotOpt = map.get(rover.location).map(c => c.copy(rover = Some(rover)))
+    spotOpt.map(spot => self.copy(map = map.updated(rover.location, spot))).getOrElse(self)
   }
 
   def printMap(): Unit = {
-    val line = () => println("-" * ((width*2)-1))
+    val line = () => println("-" * ((width)))
 
     line()
-    map.foreach(row =>
-      println(row.mkString(" "))
-    )
+    cordspace.foreach { c =>
+      if(c.x > 0 && c.y % width == 0) println()
+      map.get(c).foreach(print)
+    }
+    println()
     line()
   }
+
+  private val cordspace =
+    for {
+      x <- 0 until height
+      y <- 0 until width
+    } yield Coordinate(x,y)
 }
 
 object World {
@@ -49,12 +51,13 @@ object World {
     if(width < 5 || height < 5) Left ("World width and height must be greater than 5")
     else {
       val prng = new Random(seed)
-      val d = (0 until height).map { x =>
+      val d = (0 until height).flatMap { x =>
         (0 until width).map { y =>
           val terrain = if (prng.nextDouble() > roughness) Flat(false) else Mountain
           Cell(Coordinate(x, y), terrain, None)
         }
-      }
+      }.map(cell => cell.location -> cell).toMap
+
       Right(World(width, height, d))
     }
   }
