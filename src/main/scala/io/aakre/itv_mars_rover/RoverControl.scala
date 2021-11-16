@@ -58,8 +58,9 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
   def execute(cmd: Command): World = {
     println(cmd)
     cmd match {
-      case Clockwise => self
-      case _ => self
+      case Clockwise => getRover.fold(self)(r => self.updateRover(r.rotate(Clockwise)))
+      case AntiClockwise => getRover.fold(self)(r => self.updateRover(r.rotate(AntiClockwise)))
+      case Forward => getRover.fold(self)(r => self.updateRover(r.move()))
     }
   }
 
@@ -68,9 +69,12 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
     spotOpt.map(spot => self.copy(map = map.updated(rover.location, spot))).getOrElse(self)
   }
 
+  def getRoverLocation: Option[Cell] = map.find(p => p._2.rover.isDefined).map(_._2) // super efficient
+  def getRover: Option[Rover] = getRoverLocation.flatMap(_.rover)
+
   def updateRover(rover: Rover): World = {
-    val oldOpt = map.find(p => p._2.rover.isDefined) // super efficient
-    oldOpt.fold(self)(old => self.copy(map = map.updated(old._1, rover)))
+    val oldOpt = getRoverLocation
+    oldOpt.fold(self)(old => self.copy(map = map.updated(old.location, old.copy(rover = Some(rover)))))
   }
 
   def printMap(): Unit = {
