@@ -9,9 +9,9 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
   def execute(cmd: Command): World = {
     println(self.getRover.getOrElse("ERROR, NO ROVER") + " > " + cmd)
     cmd match {
-      case Clockwise     => getRover.fold(self)(r => self.updateRover(r.rotate(Clockwise)))
-      case AntiClockwise => getRover.fold(self)(r => self.updateRover(r.rotate(AntiClockwise)))
-      case Forward       => getRover.fold(self)(r => self.updateRover(r.move()))
+      case Clockwise     => getRover.fold(self)(r => self.rotateRover(r.rotate(Clockwise)))
+      case AntiClockwise => getRover.fold(self)(r => self.rotateRover(r.rotate(AntiClockwise)))
+      case Forward       => getRover.fold(self)(r => self.moveRover(r.move()))
     }
   }
 
@@ -23,27 +23,20 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
   def getRoverLocation: Option[Cell] = map.find(p => p._2.rover.isDefined).map(_._2) // super efficient
   def getRover: Option[Rover] = getRoverLocation.flatMap(_.rover)
 
-  def getCell(coordinate: Coordinate) = self.map.get(coordinate)
+  def getCell(coordinate: Coordinate): Option[Cell] = self.map.get(coordinate)
 
-  def updateRover(rover: Rover): World = {
+  def rotateRover(rover: Rover): World = {
+    getRoverLocation.fold(self)(oldRover =>
+      self.copy(map = map.updated(oldRover.location, oldRover.copy(rover = Some(rover)))))
+  }
+
+  def moveRover(rover: Rover): World = {
     val oldLoc = getRoverLocation
-    // rotate rover
-    val rotApplied = oldLoc.fold(self)(oldRover =>
-      self.copy(map = map.updated(oldRover.location, oldRover.copy(rover = Some(rover))))
-    )
-    // move rover if rover.location updated
-    if(oldLoc.fold(false)(_.location != rover.location)) {
-      println("MOVING ROVER!") // TODO delete
-      if(rotApplied.getCell(rover.location).fold(false)(c => c.isFlat)) {
-        println("FLAT AHEAD!)")
-        val left = oldLoc.fold(rotApplied)(oldCell => self.roverExited(oldCell))
-        left.getCell(rover.location).fold(left)(left.roverEntered(_, rover))
-      }
-      else {
-        println("STOPPED BY TERRAIN") // todo delete
-        rotApplied
-      }
-    } else rotApplied
+    if (oldLoc.fold(false)(_.location != rover.location) &&
+      self.getCell(rover.location).fold(false)(c => c.isFlat)) {
+      val left = oldLoc.fold(self)(oldCell => self.roverExited(oldCell))
+      left.getCell(rover.location).fold(left)(left.roverEntered(_, rover))
+    } else self
   }
 
   def roverExited(oldCell: Cell): World =

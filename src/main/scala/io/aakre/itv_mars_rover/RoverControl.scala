@@ -7,9 +7,9 @@ import scala.annotation.tailrec
 object RoverControl {
 
   def main(args: Array[String]): Unit = {
-    val height = 5
+    val height = 10
     val width = 40
-    val roughness = 0.15
+    val roughness = 0.08
     val roverStart = Coordinate(height/2, width/2)
 
     val rover = Rover(roverStart, North)
@@ -38,7 +38,7 @@ object RoverControl {
     command
   }
 
-  private def printHelp() = {
+  private def printHelp(): Unit = {
     println("Rover command 7000")
     println("==================")
     println("w - move forward")
