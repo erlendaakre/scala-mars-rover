@@ -4,47 +4,30 @@ import io.aakre.itv_mars_rover.Rover._
 
 import scala.util.Random
 
-case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
+case class World(width: Int, height: Int, map: Map[Coordinate, Cell], rover: Rover) { self =>
 
   def execute(cmd: Command): World = {
-    println(self.getRover.getOrElse("ERROR, NO ROVER") + " > " + cmd)
     cmd match {
-      case Clockwise     => getRover.fold(self)(r => self.rotateRover(r.rotate(Clockwise)))
-      case AntiClockwise => getRover.fold(self)(r => self.rotateRover(r.rotate(AntiClockwise)))
-      case Forward       => getRover.fold(self)(r => self.moveRover(r.move()))
+      case Clockwise     => self.copy(rover = rover.rotate(Clockwise))
+      case AntiClockwise => self.copy(rover = rover.rotate(AntiClockwise))
+      case Forward       => self.moveRover(rover.move())
     }
   }
 
-  def insertRover(rover: Rover): World = {
-    val spotOpt = map.get(rover.location).map(c => c.copy(rover = Some(rover)))
-    spotOpt.map(spot => self.copy(map = map.updated(rover.location, spot))).getOrElse(self)
-  }
-
-  def getRoverLocation: Option[Cell] = map.find(p => p._2.rover.isDefined).map(_._2) // super efficient
-  def getRover: Option[Rover] = getRoverLocation.flatMap(_.rover)
+  def getRoverLocation: Option[Cell] = map.get(rover.location)
 
   def getCell(coordinate: Coordinate): Option[Cell] = self.map.get(coordinate)
 
-  def rotateRover(rover: Rover): World = {
-    getRoverLocation.fold(self)(oldRover =>
-      self.copy(map = map.updated(oldRover.location, oldRover.copy(rover = Some(rover)))))
-  }
-
-  def moveRover(rover: Rover): World = {
+  def moveRover(updatedRover: Rover): World = {
     val oldLoc = getRoverLocation
-    if (oldLoc.fold(false)(_.location != rover.location) &&
-      self.getCell(rover.location).fold(false)(c => c.isFlat)) {
-      val left = oldLoc.fold(self)(oldCell => self.roverExited(oldCell))
-      left.getCell(rover.location).fold(left)(left.roverEntered(_, rover))
+    if (self.getCell(updatedRover.location).fold(false)(c => c.isFlat)) {
+      oldLoc.fold(self)(oldCell => self.roverExited(oldCell, updatedRover))
     } else self
   }
 
-  def roverExited(oldCell: Cell): World =
-    self.copy(map = map.updated(oldCell.location, oldCell.copy(feature = Flat(true), rover = None)))
+  def roverExited(oldCell: Cell, updatedRover: Rover): World =
+    self.copy(map = map.updated(oldCell.location, oldCell.copy(feature = Flat(true))), rover = updatedRover)
 
-  def roverEntered(newCell: Cell, rover: Rover): World = {
-    self.copy(map = map.updated(newCell.location, newCell.copy(rover = Some(rover))))
-  }
 
   def printMap(): Unit = {
     val line = () => println("-" * width)
@@ -52,7 +35,7 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
     line()
     cordspace.foreach { c =>
       if(c.x > 0 && c.y % width == 0) println()
-      map.get(c).foreach(print)
+      map.get(c).foreach(ce => print(ce.draw(self.rover)))
     }
     println()
     line()
@@ -66,33 +49,35 @@ case class World(width: Int, height: Int, map: Map[Coordinate, Cell]) { self =>
 }
 
 object World {
-  def generate(width: Int, height: Int, roughness: Double, seed: Long = Random.nextLong()): World = {
+  def generate(width: Int, height: Int, roughness: Double, rover: Rover, seed: Long = Random.nextLong()): World = {
     if(width < 5 || height < 5) throw new IllegalArgumentException("World width and height must be greater than 5")
     else {
       val prng = new Random(seed)
       val d = (0 until height).flatMap { x =>
         (0 until width).map { y =>
           val terrain = if (prng.nextDouble() > roughness) Flat(false) else Mountain
-          Cell(Coordinate(x, y), terrain, None)
+          Cell(Coordinate(x, y), terrain)
         }
       }.map(cell => cell.location -> cell).toMap
 
-      World(width, height, d)
+      World(width, height, d, rover)
     }
   }
 }
 
 case class Coordinate(x: Int, y: Int)
 
-case class Cell(location: Coordinate, feature: TerrainFeature, rover: Option[Rover]) {
-  override def toString: String = rover.fold(feature.toString) { r =>
-    r.direction match {
+case class Cell(location: Coordinate, feature: TerrainFeature) {
+
+  def draw(rover: Rover) =
+  if(rover.location == location)
+    rover.direction match {
       case North => "\uD83E\uDC45"
       case South => "\uD83E\uDC47"
       case East  => "\uD83E\uDC46"
       case West  => "\uD83E\uDC44"
     }
-  }
+  else feature.toString
 
   def isFlat: Boolean = feature match {
     case Flat(_) => true

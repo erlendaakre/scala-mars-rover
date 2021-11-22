@@ -13,7 +13,7 @@ object RoverControl {
     val roverStart = Coordinate(height/2, width/2)
 
     val rover = Rover(roverStart, North)
-    loop(World.generate(width,height, roughness).insertRover(rover))
+    loop(World.generate(width,height, roughness, rover))
 
     @tailrec def loop(w: World): World = {
       w.printMap()
