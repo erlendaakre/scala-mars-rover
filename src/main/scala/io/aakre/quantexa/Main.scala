@@ -13,12 +13,16 @@ object Main {
     println("2. Avg transaction value per account/type")
     def avg(l: List[Transaction]) = l.map(_.transactionAmount).sum / l.length
     txs.groupBy(_.accountId).foreach(t => println(s"${t._1} = ${t._2.groupBy(_.category).map(c => s"${c._1} (${avg(c._2)})")}"))
+
+    println("3. Misc Stats for 5 day rolling window")
+    def rollingWindow(day: Int, ts: List[Transaction]): List[Transaction] = ???
+    txs....
   }
 
+  // read a file without closing it, using Doubles for amount since precision is not important
   def readTx(): List[Transaction] = {
     import scala.io.Source
-    val fileName = "transactions.txt"
-    val transactionslines: Iterator[String] = Source.fromFile(fileName).getLines().drop(1)
+    val transactionslines: Iterator[String] = Source.fromFile("transactions.txt").getLines().drop(1)
     transactionslines.map { line =>
       val split = line.split(',')
       Transaction(split(0), split(1), split(2).toInt, split(3), split(4).toDouble)
