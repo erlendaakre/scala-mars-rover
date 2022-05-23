@@ -1,6 +1,6 @@
-package io.aakre.itv_mars_rover
+package io.aakre.mars_rover
 
-import io.aakre.itv_mars_rover.Rover._
+import io.aakre.mars_rover.Rover._
 
 import scala.annotation.tailrec
 
