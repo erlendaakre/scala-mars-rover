@@ -69,7 +69,7 @@ case class Coordinate(x: Int, y: Int)
 
 case class Cell(location: Coordinate, feature: TerrainFeature) {
 
-  def draw(rover: Rover) =
+  def draw(rover: Rover): String =
   if(rover.location == location)
     rover.direction match {
       case North => "\uD83E\uDC45"
